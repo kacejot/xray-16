@@ -18,8 +18,8 @@ function(xr_install tgt)
 	if(NOT MSVC)
 		install(TARGETS ${tgt} DESTINATION "."
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-				GROUP_READ GROUP_EXECUTE
-				WORLD_READ WORLD_EXECUTE) # chmod 755
+			GROUP_READ GROUP_EXECUTE
+			WORLD_READ WORLD_EXECUTE) # chmod 755
 	else()
 		install(TARGETS ${tgt}
 			CONFIGURATIONS Debug
@@ -27,7 +27,7 @@ function(xr_install tgt)
 			LIBRARY DESTINATION Debug/)
 		install(FILES $<TARGET_PDB_FILE:${tgt}>
 			CONFIGURATIONS Debug
-			DESTINATION Debug/ )
+			DESTINATION Debug/)
 		install(TARGETS ${tgt}
 			CONFIGURATIONS Release
 			RUNTIME DESTINATION Release/
@@ -37,35 +37,35 @@ endfunction()
 
 # Use only if install defined outside target directory(like luabind, for example)
 function(xr_install_file tgt)
-        if(NOT MSVC)
-                install(FILES $<TARGET_FILE:${tgt}> DESTINATION "."
-                        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                                GROUP_READ GROUP_EXECUTE
-                                WORLD_READ WORLD_EXECUTE) # chmod 755
-        else()
-                install($<TARGET_FILE:${tgt}>
-                        CONFIGURATIONS Debug
-                        RUNTIME DESTINATION Debug/)
-                install(FILES $<TARGET_PDB_FILE:${tgt}>
-                        CONFIGURATIONS Debug
-                        DESTINATION Debug/ )
-                install($<TARGET_FILE:${tgt}>
-                        CONFIGURATIONS Release
-                        RUNTIME DESTINATION Release/)
-        endif()
+	if(NOT MSVC)
+		install(FILES $<TARGET_FILE:${tgt}> DESTINATION "."
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+			GROUP_READ GROUP_EXECUTE
+			WORLD_READ WORLD_EXECUTE) # chmod 755
+	else()
+		install(FILES $<TARGET_FILE:${tgt}>
+			CONFIGURATIONS Debug
+			RUNTIME DESTINATION Debug/)
+		install(FILES $<TARGET_PDB_FILE:${tgt}>
+			CONFIGURATIONS Debug
+			DESTINATION Debug/ )
+		install(FILES $<TARGET_FILE:${tgt}>
+			CONFIGURATIONS Release
+			RUNTIME DESTINATION Release/)
+	endif()
 endfunction()
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-    set(ENV{CCACHE_SLOPPINESS} pch_defines,time_macros)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+	set(ENV{CCACHE_SLOPPINESS} pch_defines,time_macros)
 endif(CCACHE_FOUND)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
-        message(FATAL_ERROR "Building with a gcc version less than 7.0 is not supported.")
-    endif()
+	if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
+		message(FATAL_ERROR "Building with a gcc version less than 7.0 is not supported.")
+	endif()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive --std=c++17 -Wno-attributes -pipe -Wl,--no-undefined -fvisibility=hidden")
@@ -79,7 +79,7 @@ set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${SANITIZE_FLAGS}")
 set(LUA_LIBRARIES luajit)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 endif()
 
 add_definitions ( -msse2 -mfpmath=sse )
@@ -93,9 +93,9 @@ if( NO_TBB_MALLOC )
 endif()
 
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    add_definitions(-DDEBUG -DMIXED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og")
-    set(LUA_LIBRARIES luajit-debug)
+	add_definitions(-DDEBUG -DMIXED)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og")
+	set(LUA_LIBRARIES luajit-debug)
 endif()
 
 set(LUA_FOUND true)

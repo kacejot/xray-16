@@ -9,6 +9,7 @@ CMakeCache.txt
 cmake_install.cmake
 install_manifest.txt
 bin/
+build/
 intermediate/
 intermediate_plugs/
 lib/
