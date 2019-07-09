@@ -10,20 +10,8 @@ set(CMAKE_SKIP_RPATH TRUE)
 option (TBB_PARALLEL "Use tbb::parallel for prarticle and skinning acceleration on SMP." ON)
 option (NO_TBB_MALLOC "Use standard memory allocation instead of tbbmalloc" ON)
 
-execute_process(COMMAND git rev-parse --verify HEAD
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    OUTPUT_VARIABLE GIT_COMMIT
-    ERROR_QUIET
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
+git_status()
 message( "-- Commit: " ${GIT_COMMIT})
-
-execute_process(COMMAND git rev-parse --abbrev-ref HEAD
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    OUTPUT_VARIABLE GIT_BRANCH
-    ERROR_QUIET
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 message( "-- Branch: " ${GIT_BRANCH} )
 
 find_program(CCACHE_FOUND ccache)

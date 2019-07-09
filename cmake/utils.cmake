@@ -51,3 +51,19 @@ function(xr_install_file tgt)
 	endif()
 endfunction()
 
+function(git_status)
+    execute_process(COMMAND git rev-parse --verify HEAD
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_COMMIT
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    execute_process(COMMAND git rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_BRANCH
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    set(GIT_COMMIT ${GIT_COMMIT} PARENT_SCOPE)
+    set(GIT_BRANCH ${GIT_BRANCH} PARENT_SCOPE)
+endfunction()
