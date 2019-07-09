@@ -1,59 +1,30 @@
-cmake_minimum_required(VERSION 2.8.0)
+cmake_minimum_required(VERSION 3.13)
 project(OpenXRay)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-set(CMAKE_SKIP_BUILD_RPATH TRUE)
-if(NOT WIN32)
-	set(CMAKE_INSTALL_PREFIX "") # Skip all *nix-style installing for a while. Use DESTDIR
-endif()
+set(CMAKE_INSTALL_PREFIX "") # Use DESTDIR
+set(CMAKE_SKIP_RPATH TRUE)
 
-option ( TBB_PARALLEL "Use tbb::parallel for prarticle and skinning acceleration on SMP." ON )
-option ( NO_TBB_MALLOC "Use standard memory allocation instead of tbbmalloc" ON )
+option (TBB_PARALLEL "Use tbb::parallel for prarticle and skinning acceleration on SMP." ON)
+option (NO_TBB_MALLOC "Use standard memory allocation instead of tbbmalloc" ON)
 
-include(cotire)
+execute_process(COMMAND git rev-parse --verify HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE GIT_COMMIT
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-function(xr_install tgt)
-	if(NOT MSVC)
-		install(TARGETS ${tgt} DESTINATION "."
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-			GROUP_READ GROUP_EXECUTE
-			WORLD_READ WORLD_EXECUTE) # chmod 755
-	else()
-		install(TARGETS ${tgt}
-			CONFIGURATIONS Debug
-			RUNTIME DESTINATION Debug/
-			LIBRARY DESTINATION Debug/)
-		install(FILES $<TARGET_PDB_FILE:${tgt}>
-			CONFIGURATIONS Debug
-			DESTINATION Debug/)
-		install(TARGETS ${tgt}
-			CONFIGURATIONS Release
-			RUNTIME DESTINATION Release/
-			LIBRARY DESTINATION Release/)
-	endif()
-endfunction()
+message( "-- Commit: " ${GIT_COMMIT})
 
-# Use only if install defined outside target directory(like luabind, for example)
-function(xr_install_file tgt)
-	if(NOT MSVC)
-		install(FILES $<TARGET_FILE:${tgt}> DESTINATION "."
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-			GROUP_READ GROUP_EXECUTE
-			WORLD_READ WORLD_EXECUTE) # chmod 755
-	else()
-		install(FILES $<TARGET_FILE:${tgt}>
-			CONFIGURATIONS Debug
-			RUNTIME DESTINATION Debug/)
-		install(FILES $<TARGET_PDB_FILE:${tgt}>
-			CONFIGURATIONS Debug
-			DESTINATION Debug/ )
-		install(FILES $<TARGET_FILE:${tgt}>
-			CONFIGURATIONS Release
-			RUNTIME DESTINATION Release/)
-	endif()
-endfunction()
+execute_process(COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE GIT_BRANCH
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+message( "-- Branch: " ${GIT_BRANCH} )
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -99,8 +70,6 @@ if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 endif()
 
 set(LUA_FOUND true)
-
-message("CMake build ${CMAKE_BUILD_TYPE}, CFLAGS=${CMAKE_C_FLAGS}, CXXFLAGS=${CMAKE_CXX_FLAGS}")
 
 add_definitions(-D_MT -D_CPPUNWIND -DPURE_DYNAMIC_CAST -DDECLARE_SPECIALIZATION -DM_NOSTDCONTAINERS_EXT)
 add_definitions(-DLUABIND_DYNAMIC_LINK) #self-explanatory

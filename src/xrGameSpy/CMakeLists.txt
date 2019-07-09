@@ -24,9 +24,6 @@ include_directories(
 add_definitions(-DXRGAMESPY_EXPORTS -DXRAY_DISABLE_GAMESPY_WARNINGS)
 add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}__SOURCES} ${${PROJECT_NAME}__INCLUDES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
-cotire(${PROJECT_NAME})
-
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 target_link_libraries(${PROJECT_NAME} xrCore xrMiscMath GameSpy ${SDL_LIBRARIES})
 xr_install(${PROJECT_NAME})

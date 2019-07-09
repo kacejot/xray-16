@@ -7,7 +7,7 @@
 # NOTE: This build is currently only supporting x86 targets, for other targets use the original makefile. Please do not submit bugs to the LuaJIT author in case this build fails, instead use http://github.com/LuaDist/luajit
 
 project ( luajit C ASM)
-cmake_minimum_required ( VERSION 2.8 )
+cmake_minimum_required ( VERSION 3.13 )
 
 ## CONFIGURATION
 set ( LUAJIT_DIR ${CMAKE_CURRENT_LIST_DIR}/LuaJIT/src CACHE PATH "Location of luajit sources" )
@@ -22,10 +22,10 @@ set ( LUA_INIT "LUA_INIT" CACHE STRING "Environment variable for initial script.
 option ( BUILD_STATIC_LIB "Build static lib." OFF )
 option ( LUA_ANSI "Use only ansi features." OFF )
 option ( LUA_USE_RELATIVE_LOADLIB "Use modified loadlib.c with support for relative paths on posix systems." ON)
-set ( LUA_IDSIZE 60 CACHE NUMBER "gives the maximum size for the description of the source." )
+set ( LUA_IDSIZE 60 CACHE STRING "gives the maximum size for the description of the source." )
 set ( LUA_PROMPT "> " CACHE STRING "Is the default prompt used by stand-alone Lua." )
 set ( LUA_PROMPT2 ">> " CACHE STRING "Is the default continuation prompt used by stand-alone Lua." )
-set ( LUA_MAXINPUT 512 CACHE NUMBER "Is the maximum length for an input line in the stand-alone interpreter.")
+set ( LUA_MAXINPUT 512 CACHE STRING "Is the maximum length for an input line in the stand-alone interpreter.")
 
 # Version
 set ( MAJVER 2 )
@@ -50,11 +50,11 @@ option ( LUAJIT_CPU_SSE2 "Disable SSE2." OFF )
 option ( LUAJIT_CPU_NOCMOV "Disable NOCMOV." OFF )
 
 # Tunable variables
-set ( LUAI_MAXSTACK 65500 CACHE NUMBER "Max. # of stack slots for a thread (<64K)." )
-set ( LUAI_MAXCSTACK 8000 CACHE NUMBER "Max. # of stack slots for a C func (<10K)." )
-set ( LUAI_GCPAUSE 200 CACHE NUMBER "Pause GC until memory is at 200%." )
-set ( LUAI_GCMUL 200 CACHE NUMBER "Run GC at 200% of allocation speed." )
-set ( LUA_MAXCAPTURES 32 CACHE NUMBER "Max. pattern captures." )
+set ( LUAI_MAXSTACK 65500 CACHE STRING "Max. # of stack slots for a thread (<64K)." )
+set ( LUAI_MAXCSTACK 8000 CACHE STRING "Max. # of stack slots for a C func (<10K)." )
+set ( LUAI_GCPAUSE 200 CACHE STRING "Pause GC until memory is at 200%." )
+set ( LUAI_GCMUL 200 CACHE STRING "Run GC at 200% of allocation speed." )
+set ( LUA_MAXCAPTURES 32 CACHE STRING "Max. pattern captures." )
 
 ## SETUP
 set ( LUA_DIRSEP "/" )
@@ -200,9 +200,6 @@ endif ()
 list ( APPEND DASM_FLAGS -D VER=${DASM_VER} )
 
 string ( REPLACE ";" " " DASM_FLAGS_STR "${DASM_FLAGS}")
-
-message ( "DASM_FLAGS: ${DASM_FLAGS_STR}")
-message ( "DASM_ARCH: ${DASM_ARCH}" )
 
 set ( DASM_DASC ${LUAJIT_DIR}/vm_${DASM_ARCH}.dasc )
 

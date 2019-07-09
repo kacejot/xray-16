@@ -30,9 +30,6 @@ list(REMOVE_ITEM ${PROJECT_NAME}__INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/./xrSASH
 add_definitions(-DENGINE_BUILD)
 add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}__SOURCES} ${${PROJECT_NAME}__INCLUDES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
-cotire(${PROJECT_NAME})
-
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 target_link_libraries(${PROJECT_NAME} xrCore xrMiscMath luabind xrAPI xrSound xrScriptEngine xrNetServer ${LUA_LIBRARIES} ${THEORA_LIBRARY} ${OGG_LIBRARIES} xrCDB xrPhysics ${FREEIMAGE_LIBRARIES} openal ${LOCKFILE_LIBRARIES} ${SDL_LIBRARIES})
 xr_install(${PROJECT_NAME})

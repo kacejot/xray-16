@@ -58,8 +58,6 @@ source_group("" FILES ${GENERAL})
 
 ##########################################
 
-message("path "  ${CMAKE_CURRENT_SOURCE_DIR})
-
 add_definitions(-DXRUICORE_EXPORTS)
 
 if (WIN32)
