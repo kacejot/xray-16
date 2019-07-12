@@ -10,16 +10,14 @@
 
 #include "xrCore/Containers/AssociativeVector.hpp"
 #include "Common/object_broker.h"
-#include "xrAICore/Navigation/graph_engine.h"
-#include "xrAICore/Navigation/graph_engine_space.h"
-
 
 template <typename _operator_condition, typename _condition_state, typename _operator, typename _condition_evaluator,
-    typename _operator_id_type, bool reverse_search = false, typename _operator_ptr = _operator*,
+    typename _operator_id_type, bool _reverse_search = false, typename _operator_ptr = _operator*,
     typename _condition_evaluator_ptr = _condition_evaluator*>
 class CProblemSolver
 {
 public:
+    static const bool reverse_search = _reverse_search;
 
 private:
     typedef CProblemSolver<_operator_condition, _condition_state, _operator, _condition_evaluator, _operator_id_type,
@@ -31,9 +29,6 @@ public:
     typedef _condition_state CState;
     typedef _condition_evaluator CConditionEvaluator;
     typedef _operator_ptr operator_ptr;
-#ifdef WINDOWS
-    typedef _condition_evaluator_ptr _condition_evaluator_ptr;
-#endif
     typedef typename _operator_condition::condition_type condition_type;
     typedef typename _operator_condition::value_type value_type;
     typedef typename _operator::edge_value_type edge_value_type;
@@ -141,7 +136,7 @@ private:
             }
                 
             if (vertex_cond_begin->condition() >= target_cond_begin->condition()) {
-                VERIFY(vertex_condition_begin->condition() == target_cond_begin->condition());
+                VERIFY(vertex_cond_begin->condition() == target_cond_begin->condition());
                 
                 if (vertex_cond_begin->value() != target_cond_begin->value()) {
                     return false;
@@ -209,11 +204,11 @@ public:
         auto e = evaluators().end();
 
         for (auto&& condition : current_state().conditions()) {
-            if (i->first < condition->condition()) {
-                i = std::lower_bound(i, e, condition->condition(), evaluators().value_comp());
+            if (i->first < condition.condition()) {
+                i = std::lower_bound(i, e, condition.condition(), evaluators().value_comp());
             }
 
-            if (i->second->evaluate() != condition->value()) {
+            if (i->second->evaluate() != condition.value()) {
                 return false;
             }
         }
@@ -245,7 +240,7 @@ public:
         }
         else {
             if (iter->m_operator->applicable(vertex_index, current_state(), iter->m_operator->conditions(), *this)) {
-                iter->m_operator->apply(vertex_index, (*i).m_operator->effects(), m_temp, m_current_state, *this);
+                iter->m_operator->apply(vertex_index, iter->m_operator->effects(), m_temp, m_current_state, *this);
                 m_applied = true;
             }
             else {
@@ -303,7 +298,7 @@ public:
         m_target_state = state;
     }
     const CState& current_state() const { 
-        return m_current_state
+        return m_current_state;
     }
 
     const CState& target_state() const { 
@@ -368,14 +363,17 @@ public:
     }
 };
 
+#include "xrAICore/Navigation/graph_engine.h"
+#include "xrAICore/Navigation/graph_engine_space.h"
+
 #define TEMPLATE_SPECIALIZATION                                                                                  \
     template <typename _operator_condition, typename _operator, typename _condition_state,                       \
-        typename _condition_evaluator, typename _operator_id_type, bool _reverse_search, typename _operator_ptr, \
+        typename _condition_evaluator, typename _operator_id_type, bool reverse_search, typename _operator_ptr, \
         typename _condition_evaluator_ptr>
 
 #define CProblemSolverAbstract                                                                                \
     CProblemSolver<_operator_condition, _operator, _condition_state, _condition_evaluator, _operator_id_type, \
-        _reverse_search, _operator_ptr, _condition_evaluator_ptr>
+        reverse_search, _operator_ptr, _condition_evaluator_ptr>
 
 TEMPLATE_SPECIALIZATION
 bool CProblemSolverAbstract::is_goal_reached_impl(const _index_type& vertex_index, bool) const
@@ -500,5 +498,3 @@ typename CProblemSolverAbstract::edge_value_type CProblemSolverAbstract::estimat
 
 #undef TEMPLATE_SPECIALIZATION
 #undef CProblemSolverAbstract
-
-
