@@ -1,20 +1,43 @@
-////////////////////////////////////////////////////////////////////////////
-//	Module 		: path_manager_solver.h
-//	Created 	: 21.03.2002
-//  Modified 	: 03.03.2004
-//	Author		: Dmitriy Iassenev
-//	Description : Solver path manager
-////////////////////////////////////////////////////////////////////////////
-
 #pragma once
 
-#include "xrAICore/Components/problem_solver.h"
+template <
+    typename _operator_condition,
+    typename _condition_state,
+    typename _operator,
+    typename _condition_evaluator,
+    typename _operator_id_type,
+    bool _reverse_search,
+    typename _operator_ptr,
+    typename _condition_evaluator_ptr>
+class CProblemSolver;
 
-template <typename T1, typename T2, typename T3, typename T4, typename T5, bool T6, typename T7, typename T8,
-    typename _DataStorage, typename _Parameters, typename _dist_type, typename _index_type, typename _iteration_type>
-class CPathManager<CProblemSolver<T1, T2, T3, T4, T5, T6, T7, T8>, _DataStorage, _Parameters, _dist_type, _index_type,
-    _iteration_type> : public CPathManagerGeneric<CProblemSolver<T1, T2, T3, T4, T5, T6, T7, T8>, _DataStorage,
-                           _Parameters, _dist_type, _index_type, _iteration_type>
+template <
+    typename T1,
+    typename T2, 
+    typename T3,
+    typename T4, 
+    typename T5, 
+    bool T6, 
+    typename T7, 
+    typename T8,
+    typename _DataStorage, 
+    typename _Parameters, 
+    typename _dist_type, 
+    typename _index_type, 
+    typename _iteration_type>
+class CPathManager<
+    CProblemSolver<T1, T2, T3, T4, T5, T6, T7, T8>, 
+    _DataStorage, 
+    _Parameters, 
+    _dist_type, 
+    _index_type,
+    _iteration_type> : public CPathManagerGeneric<
+    CProblemSolver<T1, T2, T3, T4, T5, T6, T7, T8>,
+    _DataStorage, 
+    _Parameters,
+    _dist_type, 
+    _index_type, 
+    _iteration_type>
 {
 public:
     using inherited = CPathManagerGeneric<CProblemSolver<T1, T2, T3, T4, T5, T6, T7, T8>, _DataStorage,

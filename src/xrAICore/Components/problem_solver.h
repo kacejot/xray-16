@@ -11,6 +11,9 @@
 #include "xrCore/Containers/AssociativeVector.hpp"
 #include "Common/object_broker.h"
 
+#include "xrAICore/Navigation/graph_engine.h"
+#include "xrAICore/Navigation/graph_engine_space.h"
+
 template <
     typename _operator_condition,
     typename _condition_state,
@@ -465,8 +468,7 @@ public:
     }
 };
 
-#include "xrAICore/Navigation/graph_engine.h"
-#include "xrAICore/Navigation/graph_engine_space.h"
+
 
 #define TEMPLATE_SPECIALIZATION                                                                                  \
     template <typename _operator_condition, typename _operator, typename _condition_state,                       \
