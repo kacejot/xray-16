@@ -11,46 +11,59 @@
 #include "xrCore/Containers/AssociativeVector.hpp"
 #include "Common/object_broker.h"
 
-template <typename _operator_condition, typename _condition_state, typename _operator, typename _condition_evaluator,
-    typename _operator_id_type, bool _reverse_search = false, typename _operator_ptr = _operator*,
+template <
+    typename _operator_condition,
+    typename _condition_state,
+    typename _operator,
+    typename _condition_evaluator,
+    typename _operator_id_type,
+    bool _reverse_search = false,
+    typename _operator_ptr = _operator*,
     typename _condition_evaluator_ptr = _condition_evaluator*>
-class CProblemSolver
-{
+class CProblemSolver {
 public:
+    struct SOperator;
+
     static const bool reverse_search = _reverse_search;
 
-private:
-    typedef CProblemSolver<_operator_condition, _condition_state, _operator, _condition_evaluator, _operator_id_type,
-        reverse_search, _operator_ptr, _condition_evaluator_ptr>
-        self_type;
+    using COperator = _operator;
+    using CState = _condition_state;
+    using CConditionEvaluator = _condition_evaluator;
+    using operator_ptr = _operator_ptr;
+    using condition_type = typename _operator_condition::condition_type;
+    using value_type = typename _operator_condition::value_type;
+    using edge_value_type = typename _operator::edge_value_type;
+    using _index_type = CState;
+    using edge_type = _operator_id_type;
+    using OPERATOR_VECTOR = xr_vector<SOperator>;
+    using const_iterator = typename OPERATOR_VECTOR::const_iterator;
+    using EVALUATORS = AssociativeVector<condition_type, _condition_evaluator_ptr>;
+    using self_type = CProblemSolver<
+        _operator_condition,
+        _condition_state,
+        _operator,
+        _condition_evaluator,
+        _operator_id_type,
+        reverse_search,
+        _operator_ptr,
+        _condition_evaluator_ptr>;
 
-public:
-    typedef _operator COperator;
-    typedef _condition_state CState;
-    typedef _condition_evaluator CConditionEvaluator;
-    typedef _operator_ptr operator_ptr;
-    typedef typename _operator_condition::condition_type condition_type;
-    typedef typename _operator_condition::value_type value_type;
-    typedef typename _operator::edge_value_type edge_value_type;
-    typedef CState _index_type;
-    typedef _operator_id_type edge_type;
-
-    struct SOperator
-    {
+    struct SOperator {
         _operator_id_type m_operator_id;
         _operator_ptr m_operator;
 
-        SOperator(const _operator_id_type& operator_id, _operator_ptr _op)
-            : m_operator_id(operator_id), m_operator(_op)
-        {
+        SOperator(const _operator_id_type& operator_id, _operator_ptr _op) : m_operator_id(operator_id), m_operator(_op) {
+        
         }
 
-        bool operator<(const _operator_id_type& operator_id) const { return (m_operator_id < operator_id); }
-        _operator_ptr get_operator() const { return (m_operator); }
+        bool operator<(const _operator_id_type& operator_id) const {
+            return m_operator_id < operator_id;
+        }
+        
+        _operator_ptr get_operator() const {
+            return m_operator; 
+        }
     };
-    typedef xr_vector<SOperator> OPERATOR_VECTOR;
-    typedef typename OPERATOR_VECTOR::const_iterator const_iterator;
-    typedef AssociativeVector<condition_type, _condition_evaluator_ptr> EVALUATORS;
 
 protected:
     OPERATOR_VECTOR m_operators;
@@ -132,7 +145,7 @@ private:
 
         while (target_cond_begin != target_cond_end) {
             if (vertex_cond_begin == vertex_cond_end || vertex_cond_begin->condition() > target_cond_begin->condition()) {
-                evaluate_condition(vertex_cond_begin, vertex_cond_end, (*target_cond_begin).condition());
+                evaluate_condition(vertex_cond_begin, vertex_cond_end, target_cond_begin->condition());
             }
                 
             if (vertex_cond_begin->condition() >= target_cond_begin->condition()) {
@@ -150,10 +163,90 @@ private:
 
         return true;
     }
-    bool is_goal_reached_impl(const _index_type& vertex_index, bool) const;
+    bool is_goal_reached_impl(const _index_type& vertex_index, bool) const {
+        static_assert(reverse_search, "This function cannot be used in the STRAIGHT search.");
 
-    edge_value_type estimate_edge_weight_impl(const _index_type& vertex_index) const;
-    edge_value_type estimate_edge_weight_impl(const _index_type& vertex_index, bool) const;
+        auto current_cond_begin = m_current_state.conditions().begin();
+        auto current_cond_end = m_current_state.conditions().end();
+        auto vertex_cond_begin = vertex_index.conditions().begin();
+        auto vertex_cond_end = vertex_index.conditions().end();
+
+        while (vertex_cond_begin != vertex_cond_end) {
+            if (current_cond_begin == current_cond_end || current_cond_begin->condition() > vertex_cond_begin->condition()) {
+                evaluate_condition(current_cond_begin, current_cond_end, vertex_cond_begin->condition());
+            }
+
+            if (current_cond_begin->condition() >= vertex_cond_begin->condition()) {
+                if (current_cond_begin->value() != vertex_cond_begin->value()) {
+                    return false;
+                }
+
+                ++vertex_cond_begin;
+            }
+
+            ++current_cond_begin;
+        }
+        return true;
+    }
+
+    edge_value_type estimate_edge_weight_impl(const _index_type& vertex_index) const {
+        static_assert(!reverse_search, "This function cannot be used in the REVERSE search.");
+        
+        edge_value_type result{};
+        auto target_cond_begin = target_state().conditions().begin();
+        auto target_cond_end = target_state().conditions().end();
+        auto vertex_cond_begin = vertex_index.conditions().begin();
+        auto vertex_cond_end = vertex_index.conditions().end();
+
+        while(target_cond_begin != target_cond_end && vertex_cond_begin != vertex_cond_end) {
+            if (target_cond_begin->condition() < vertex_cond_begin->condition()) {
+                ++result;
+                ++target_cond_begin;
+            }
+            else if (target_cond_begin->condition() > vertex_cond_begin->condition()) {
+                ++vertex_cond_begin;
+            }
+            else {
+                if (target_cond_begin->value() != vertex_cond_begin->value()) {
+                    ++result;
+                }
+                ++target_cond_begin;
+                ++vertex_cond_begin;
+            }
+        }
+
+        return result + static_cast<edge_value_type>(target_cond_end - target_cond_begin);
+    }
+
+    edge_value_type estimate_edge_weight_impl(const _index_type& vertex_index, bool) const {
+        static_assert(reverse_search, "This function cannot be used in the STRAIGHT search.");
+        
+        edge_value_type result{};
+        auto current_cond_begin = current_state().conditions().begin();
+        auto current_cond_end = current_state().conditions().end();
+        auto vertex_cond_begin = vertex_index.conditions().begin();
+        auto vertex_cond_end = vertex_index.conditions().end();
+        while (vertex_cond_begin != vertex_cond_end) {
+            if (current_cond_begin == current_cond_end || current_cond_begin->condition() > vertex_cond_begin->condition()) {
+                evaluate_condition(current_cond_begin, current_cond_end, vertex_cond_begin->condition());
+            }
+
+            if (current_cond_begin->condition() < vertex_cond_begin->condition()) {
+                ++current_cond_begin;
+            }
+            else {
+                VERIFY(current_cond_begin->condition() == vertex_cond_begin->condition());
+                if (current_cond_begin->value() != vertex_cond_begin->value()) {
+                    ++result;
+                }
+
+                ++current_cond_begin;
+                ++vertex_cond_begin;
+            }
+        }
+
+        return result;
+    }
 
 private:
     struct helper
@@ -260,7 +353,9 @@ public:
         return is_goal_reached_impl<reverse_search>(vertex_index);
     }
 
-    edge_value_type estimate_edge_weight(const _index_type& vertex_index) const;
+    edge_value_type estimate_edge_weight(const _index_type& vertex_index) const {
+        return helper::template estimate_edge_weight_impl<reverse_search>(*this, vertex_index);
+    }
 
     // operator interface
     virtual void add_operator(const _operator_id_type& operator_id, _operator_ptr op) {
@@ -286,7 +381,12 @@ public:
         m_operators.erase(erase_place);
     }
 
-    _operator_ptr get_operator(const _operator_id_type& operator_id);
+    _operator_ptr get_operator(const _operator_id_type& operator_id) {
+        auto iter = std::lower_bound(m_operators.begin(), m_operators.end(), operator_id);
+        THROW(m_operators.end() != iter);
+
+        return (iter->get_operator());
+    }
     
     const OPERATOR_VECTOR& operators() const { 
         return m_operators;
@@ -350,7 +450,9 @@ public:
     // solver interface
     void solve();
 
-    const xr_vector<_operator_id_type>& solution() const;
+    const xr_vector<_operator_id_type>& solution() const {
+        return m_solution;
+    }
 
     virtual void clear() {
         while (!m_operators.empty()) {
@@ -376,43 +478,6 @@ public:
         reverse_search, _operator_ptr, _condition_evaluator_ptr>
 
 TEMPLATE_SPECIALIZATION
-bool CProblemSolverAbstract::is_goal_reached_impl(const _index_type& vertex_index, bool) const
-{
-    static_assert(reverse_search, "This function cannot be used in the STRAIGHT search.");
-    typename xr_vector<_operator_condition>::const_iterator I = m_current_state.conditions().begin();
-    typename xr_vector<_operator_condition>::const_iterator E = m_current_state.conditions().end();
-    typename xr_vector<_operator_condition>::const_iterator i = vertex_index.conditions().begin();
-    typename xr_vector<_operator_condition>::const_iterator e = vertex_index.conditions().end();
-    for (; i != e;)
-    {
-        if ((I == E) || ((*I).condition() > (*i).condition()))
-            evaluate_condition(I, E, (*i).condition());
-
-        if ((*I).condition() < (*i).condition())
-            ++I;
-        else
-        {
-            if ((*I).value() != (*i).value())
-                return (false);
-            ++I;
-            ++i;
-        }
-    }
-    return (true);
-}
-
-TEMPLATE_SPECIALIZATION
-const xr_vector<_operator_id_type>& CProblemSolverAbstract::solution() const { return (m_solution); }
-
-TEMPLATE_SPECIALIZATION
-_operator_ptr CProblemSolverAbstract::get_operator(const _operator_id_type& operator_id)
-{
-    typename OPERATOR_VECTOR::iterator I = std::lower_bound(m_operators.begin(), m_operators.end(), operator_id);
-    THROW(m_operators.end() != I);
-    return ((*I).get_operator());
-}
-
-TEMPLATE_SPECIALIZATION
 void CProblemSolverAbstract::solve()
 {
 #ifndef AI_COMPILER
@@ -430,70 +495,6 @@ void CProblemSolverAbstract::solve()
         GraphEngineSpace::CSolverBaseParameters(
             GraphEngineSpace::_solver_dist_type(-1), GraphEngineSpace::_solver_condition_type(-1), 8000));
 #endif
-}
-
-TEMPLATE_SPECIALIZATION
-typename CProblemSolverAbstract::edge_value_type CProblemSolverAbstract::estimate_edge_weight(
-    const _index_type& condition) const
-{
-    return (helper::template estimate_edge_weight_impl<reverse_search>(*this, condition));
-}
-
-TEMPLATE_SPECIALIZATION
-typename CProblemSolverAbstract::edge_value_type CProblemSolverAbstract::estimate_edge_weight_impl(
-    const _index_type& condition) const
-{
-    static_assert(!reverse_search, "This function cannot be used in the REVERSE search.");
-    edge_value_type result = 0;
-    typename xr_vector<_operator_condition>::const_iterator I = target_state().conditions().begin();
-    typename xr_vector<_operator_condition>::const_iterator E = target_state().conditions().end();
-    typename xr_vector<_operator_condition>::const_iterator i = condition.conditions().begin();
-    typename xr_vector<_operator_condition>::const_iterator e = condition.conditions().end();
-    for (; (I != E) && (i != e);)
-        if ((*I).condition() < (*i).condition())
-        {
-            ++result;
-            ++I;
-        }
-        else if ((*I).condition() > (*i).condition())
-            ++i;
-        else
-        {
-            if ((*I).value() != (*i).value())
-                ++result;
-            ++I;
-            ++i;
-        }
-    return (result + edge_value_type(E - I));
-}
-
-TEMPLATE_SPECIALIZATION
-typename CProblemSolverAbstract::edge_value_type CProblemSolverAbstract::estimate_edge_weight_impl(
-    const _index_type& condition, bool) const
-{
-    static_assert(reverse_search, "This function cannot be used in the STRAIGHT search.");
-    edge_value_type result = 0;
-    typename xr_vector<_operator_condition>::const_iterator I = current_state().conditions().begin();
-    typename xr_vector<_operator_condition>::const_iterator E = current_state().conditions().end();
-    typename xr_vector<_operator_condition>::const_iterator i = condition.conditions().begin();
-    typename xr_vector<_operator_condition>::const_iterator e = condition.conditions().end();
-    for (; (i != e);)
-    {
-        if ((I == E) || ((*I).condition() > (*i).condition()))
-            evaluate_condition(I, E, (*i).condition());
-
-        if ((*I).condition() < (*i).condition())
-            ++I;
-        else
-        {
-            VERIFY((*I).condition() == (*i).condition());
-            if ((*I).value() != (*i).value())
-                ++result;
-            ++I;
-            ++i;
-        }
-    }
-    return (result);
 }
 
 #undef TEMPLATE_SPECIALIZATION
