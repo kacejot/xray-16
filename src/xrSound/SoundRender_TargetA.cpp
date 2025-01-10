@@ -52,7 +52,7 @@ void CSoundRender_TargetA::start(CSoundRender_Emitter* E)
     else
         dataFormat = mono ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 
-    sampleRate = info.samplesPerSec;
+    sampleRate = info.samples_per_sec;
 }
 
 void CSoundRender_TargetA::render()

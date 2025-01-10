@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "SoundRender.h"
+#include "Sound.h"
 #include "SoundRender_Environment.h"
 
 #include "SoundRender_EffectsA_EAX.h"

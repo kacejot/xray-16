@@ -6,11 +6,11 @@
 #include "SoundRender_Source.h"
 #include "SoundRender_Emitter.h"
 
-// XXX: old SDK functionality
-//#if defined(XR_PLATFORM_WINDOWS)
-//#define OPENAL
-//#include <eax/eax.h>
-//#endif
+#include "xrEngine/Engine.h"
+#include "xrEngine/GameFont.h"
+#include "xrEngine/PerformanceAlert.hpp"
+#include "xrCDB/Intersect.hpp"
+#include "SoundRender_Target.h"
 
 XRSOUND_API Flags32 psSoundFlags =
 {
@@ -29,7 +29,7 @@ XRSOUND_API float psSoundVFactor = 1.0f;
 XRSOUND_API float psSoundVMusic = 1.f;
 XRSOUND_API int psSoundCacheSizeMB = 32;
 
-CSoundRender_Core* SoundRender = nullptr;
+CSoundRender_Core* SoundRenderCore = nullptr;
 
 CSoundRender_Core::CSoundRender_Core(CSoundManager& p)
     : Parent(p)
@@ -108,7 +108,7 @@ CSound* CSoundRender_Core::create(pcstr fName, esound_type sound_type, int game_
     if (strext(fn))
         *strext(fn) = 0;
 
-    CSoundRender_Source* handle = i_create_source(fn);
+    Source* handle = i_create_source(fn);
     if (!handle)
         return nullptr;
 
@@ -146,7 +146,7 @@ void CSoundRender_Core::attach_tail(CSound& snd, pcstr fName)
 
     snd.fn_attached[idx] = fn;
 
-    CSoundRender_Source* s = i_create_source(fn);
+    Source* s = i_create_source(fn);
     snd.dwBytesTotal += s->bytes_total();
     snd.fTimeTotal += s->length_sec();
     if (snd.feedback)
@@ -162,7 +162,7 @@ void CSoundRender_Core::destroy(CSound& S)
         emitter->stop(false);
         VERIFY(S.feedback == nullptr);
     }
-    i_destroy_source((CSoundRender_Source*)S.handle);
+    i_destroy_source((Source*)S.handle);
     S.handle = nullptr;
 }
 
@@ -214,8 +214,230 @@ void CSoundRender_Core::refresh_sources()
 
     for (const auto& kv : s_sources)
     {
-        CSoundRender_Source* s = kv.second;
+        Source* s = kv.second;
         s->unload();
         s->load(s->file_name());
     }
+}
+
+Source* CSoundRender_Core::i_create_source(pcstr name)
+{
+    // Search
+    string256 id;
+    xr_strcpy(id, name);
+    xr_strlwr(id);
+    if (strext(id))
+        *strext(id) = 0;
+
+    {
+        ScopeLock scope(&s_sources_lock);
+        const auto it = s_sources.find(id);
+        if (it != s_sources.end())
+        {
+            return it->second;
+        }
+    }
+
+    // Load a _new one
+    Source source;
+    if (source.load(id))
+    {
+        ScopeLock scope(&s_sources_lock);
+        Source* S = xr_new<Source>(std::move(source));
+        s_sources.emplace(id, S);
+        return S;
+    }
+
+    return nullptr;
+}
+
+void CSoundRender_Core::i_destroy_source(Source* S)
+{
+    // No actual destroy at all
+}
+
+void CSoundRender_Core::i_start(CSoundRender_Emitter* E) const
+{
+    R_ASSERT1_CURE(E, { return; });
+
+    // Search lowest-priority target
+    float Ptarget = flt_max;
+    CSoundRender_Target* T = nullptr;
+    for (const auto Ttest : s_targets)
+    {
+        if (Ttest->get_priority() < Ptarget)
+        {
+            T = Ttest;
+            Ptarget = Ttest->get_priority();
+        }
+    }
+
+    // Stop currently playing
+    if (T->get_emitter())
+        T->get_emitter()->cancel();
+
+    // Associate
+    E->target = T;
+    E->target->start(E);
+}
+
+bool CSoundRender_Core::i_allow_play(const CSoundRender_Emitter* E)
+{
+    // Search available target
+    const float Ptest = E->priority();
+    return std::any_of(s_targets.begin(), s_targets.end(),
+        [Ptest](const CSoundRender_Target* target) { return target->get_priority() < Ptest; });
+}
+
+void CSoundRender_Core::update(const Fvector& P, const Fvector& D, const Fvector& N, const Fvector& R)
+{
+    ZoneScoped;
+
+    if (0 == bReady)
+        return;
+    Stats.Update.Begin();
+    isLocked = true;
+
+    Timer.time_factor(psSoundTimeFactor); //--#SM+#--
+    {
+        const float new_tm = Timer.GetElapsed_sec();
+        fTimer_Delta = new_tm - fTimer_Value;
+        fTimer_Value = new_tm;
+
+        const float new_tm_p = TimerPersistent.GetElapsed_sec();
+        fTimerPersistent_Delta = new_tm_p - fTimerPersistent_Value;
+        fTimerPersistent_Value = new_tm_p;
+    }
+    s_emitters_u++;
+
+    const auto update_emitter = [this](CSoundRender_Emitter* emitter) {
+        const bool ignore = emitter->bIgnoringTimeFactor;
+        const float time = ignore ? fTimerPersistent_Value : fTimer_Value;
+        const float delta = ignore ? fTimerPersistent_Delta : fTimer_Delta;
+        emitter->update(time, delta);
+        emitter->marker = s_emitters_u;
+    };
+
+    // Firstly update emitters, which are now being rendered
+    for (CSoundRender_Target* T : s_targets)
+    {
+        if (CSoundRender_Emitter* E = T->get_emitter())
+        {
+            update_emitter(E);
+        }
+    }
+
+    // Update emitters
+    for (CSoundRender_Scene* scene : m_scenes)
+    {
+        auto& emitters = scene->get_emitters();
+        for (u32 it = 0; it < emitters.size(); it++)
+        {
+            CSoundRender_Emitter* pEmitter = emitters[it];
+            if (pEmitter->marker != s_emitters_u)
+            {
+                update_emitter(pEmitter);
+            }
+            if (!pEmitter->isPlaying())
+            {
+                // Stopped
+                xr_delete(pEmitter);
+                emitters.erase(emitters.begin() + it);
+                it--;
+            }
+        }
+    }
+
+    // update listener
+    update_listener(P, D, N, R, fTimer_Delta);
+
+    // Events
+    for (CSoundRender_Scene* scene : m_scenes)
+        scene->update();
+
+    isLocked = false;
+    Stats.Update.End();
+}
+
+void CSoundRender_Core::render()
+{
+    ZoneScoped;
+
+    isLocked = true;
+    Stats.Render.Begin();
+
+    for (CSoundRender_Target* T : s_targets)
+    {
+        if (CSoundRender_Emitter* emitter = T->get_emitter())
+        {
+            emitter->render();
+        }
+    }
+
+    Stats.Render.End();
+    isLocked = false;
+}
+
+void CSoundRender_Core::statistic(CSound_stats* dest, CSound_stats_ext* ext)
+{
+    if (dest)
+    {
+        dest->_rendered = 0;
+        dest->_simulated = 0;
+        dest->_events = 0;
+
+        for (auto T : s_targets)
+        {
+            if (T->get_emitter() && T->get_Rendering())
+                dest->_rendered++;
+        }
+
+        for (CSoundRender_Scene* scene : m_scenes)
+        {
+            dest->_simulated += scene->get_emitters().size();
+            dest->_events += scene->get_prev_events_count();
+        }
+    }
+    if (ext)
+    {
+        for (CSoundRender_Scene* scene : m_scenes)
+        {
+            auto& emitters = scene->get_emitters();
+            for (const auto emitter : emitters)
+            {
+                CSound_stats_ext::SItem item;
+                item._3D = !emitter->b2D;
+                item._rendered = !!emitter->target;
+                item.params = emitter->p_source;
+                item.volume = emitter->smooth_volume;
+                if (emitter->owner_data)
+                {
+                    item.name = emitter->source()->file_name();
+                    item.game_object = emitter->owner_data->g_object;
+                    item.game_type = emitter->owner_data->g_type;
+                    item.type = emitter->owner_data->s_type;
+                }
+                else
+                {
+                    item.game_object = nullptr;
+                    item.game_type = 0;
+                    item.type = st_Effect;
+                }
+                ext->append(item);
+            }
+        }
+    }
+}
+
+void CSoundRender_Core::DumpStatistics(IGameFont& font, IPerformanceAlert* alert)
+{
+    Stats.FrameEnd();
+    CSound_stats sndStat;
+    statistic(&sndStat, nullptr);
+    font.OutNext("*** SOUND:    %2.2fms", Stats.Update.result);
+    font.OutNext("    RENDER:   %2.2fms", Stats.Render.result);
+    font.OutNext("Rendered:     %d", sndStat._rendered);
+    font.OutNext("Simulated:    %d", sndStat._simulated);
+    font.OutNext("Events:       %d", sndStat._events);
+    Stats.FrameStart();
 }

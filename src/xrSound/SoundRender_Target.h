@@ -1,6 +1,8 @@
 #pragma once
 
-#include "SoundRender.h"
+#include "Sound.h"
+
+class CSoundRender_Emitter;
 
 class CSoundRender_Target
 {

@@ -12,25 +12,25 @@ void CSoundManager::CreateDevicesList()
 
     static bool noSound = strstr(Core.Params, "-nosound");
 
-    SoundRender = xr_new<CSoundRender_CoreA>(*this);
+    SoundRenderCore = xr_new<CSoundRender_CoreA>(*this);
 
     if (!noSound)
-        SoundRender->_initialize_devices_list();
+        SoundRenderCore->_initialize_devices_list();
 
-    if (!SoundRender->bPresent)
+    if (!SoundRenderCore->bPresent)
         soundDevices.emplace_back(nullptr, -1);
 
-    GEnv.Sound = SoundRender;
+    GEnv.Sound = SoundRenderCore;
 }
 
 void CSoundManager::Create()
 {
     ZoneScoped;
 
-    if (SoundRender->bPresent)
+    if (SoundRenderCore->bPresent)
     {
         env_load();
-        SoundRender->_initialize();
+        SoundRenderCore->_initialize();
     }
 }
 
@@ -40,8 +40,8 @@ void CSoundManager::Destroy()
 
     GEnv.Sound = nullptr;
 
-    SoundRender->_clear();
-    xr_delete(SoundRender);
+    SoundRenderCore->_clear();
+    xr_delete(SoundRenderCore);
 
     env_unload();
 
@@ -55,7 +55,7 @@ void CSoundManager::Destroy()
 
 bool CSoundManager::IsSoundEnabled() const
 {
-    return SoundRender && SoundRender->bPresent;
+    return SoundRenderCore && SoundRenderCore->bPresent;
 }
 
 void CSoundManager::env_load()
@@ -84,5 +84,5 @@ void CSoundManager::refresh_env_library()
 {
     env_unload();
     env_load();
-    SoundRender->env_apply();
+    SoundRenderCore->env_apply();
 }

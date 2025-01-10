@@ -105,7 +105,7 @@ void CSoundRender_Scene::set_geometry_env(IReader* I)
     xr_delete(geom_ENV);
     if (nullptr == I)
         return;
-    const auto envLib = SoundRender->Parent.get_env_library();
+    const auto envLib = SoundRenderCore->Parent.get_env_library();
     if (!envLib)
         return;
 
@@ -146,7 +146,7 @@ void CSoundRender_Scene::set_geometry_env(IReader* I)
     }
     geom_ENV = xr_new<CDB::MODEL>();
     geom_ENV->build(verts, H.vertcount, tris, H.facecount);
-#ifdef _EDITOR // XXX: may be we are interested in applying env in the game build too?
+#ifdef _EDITOR // XXX: maybe we are interested in applying env in the game build too?
     env_apply();
 #endif
     geom_ch->close();
@@ -156,7 +156,7 @@ void CSoundRender_Scene::set_geometry_env(IReader* I)
 
 void CSoundRender_Scene::play(ref_sound& S, IGameObject* O, u32 flags, float delay)
 {
-    if (!SoundRender->bPresent || !S._handle())
+    if (!SoundRenderCore->bPresent || !S._handle())
         return;
     S->g_object = O;
     if (S._feedback())
@@ -173,7 +173,7 @@ void CSoundRender_Scene::play(ref_sound& S, IGameObject* O, u32 flags, float del
 void CSoundRender_Scene::play_no_feedback(
     ref_sound& S, IGameObject* O, u32 flags, float delay, Fvector* pos, float* vol, float* freq, Fvector2* range)
 {
-    if (!SoundRender->bPresent || !S._handle())
+    if (!SoundRenderCore->bPresent || !S._handle())
         return;
     const ref_sound orig = S;
     S._set(xr_new<CSound>(orig->handle));
@@ -202,7 +202,7 @@ void CSoundRender_Scene::play_no_feedback(
 
 void CSoundRender_Scene::play_at_pos(ref_sound& S, IGameObject* O, const Fvector& pos, u32 flags, float delay)
 {
-    if (!SoundRender->bPresent || !S._handle())
+    if (!SoundRenderCore->bPresent || !S._handle())
         return;
     S->g_object = O;
     if (S._feedback())
@@ -294,7 +294,7 @@ float CSoundRender_Scene::get_occlusion(const Fvector& P, float R, Fvector* occ)
     float occ_value = 1.f;
 
     // Calculate RAY params
-    const Fvector base = SoundRender->listener_position();
+    const Fvector base = SoundRenderCore->listener_position();
     Fvector pos, dir;
     pos.random_dir();
     pos.mul(R);
@@ -365,7 +365,7 @@ void CSoundRender_Scene::set_user_env(CSound_environment* E)
     {
         bUserEnvironment = false;
     }
-    SoundRender->env_apply();
+    SoundRenderCore->env_apply();
 }
 
 CSound_environment* CSoundRender_Scene::get_environment(const Fvector& P)
@@ -382,7 +382,7 @@ CSound_environment* CSoundRender_Scene::get_environment(const Fvector& P)
         geom_DB.ray_query(CDB::OPT_ONLYNEAREST, geom_ENV, P, dir, 1000.f);
         if (geom_DB.r_count())
         {
-            const auto envLib = SoundRender->Parent.get_env_library();
+            const auto envLib = SoundRenderCore->Parent.get_env_library();
 
             const CDB::RESULT* r = geom_DB.r_begin();
             const CDB::TRI* T = geom_ENV->get_tris() + r->id;

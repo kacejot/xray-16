@@ -139,7 +139,7 @@ void ALDeviceList::Enumerate()
     // make token
     const auto _cnt = GetNumDevices();
 
-    auto& devices = SoundRender->Parent.GetDevicesList();
+    auto& devices = SoundRenderCore->Parent.GetDevicesList();
     devices.reserve(_cnt + 1);
 
     for (u32 i = 0; i < _cnt; ++i)

@@ -2,12 +2,13 @@
 
 #include "xrCore/_std_extensions.h"
 
-#include "SoundRender.h"
+#include "Sound.h"
 #include "SoundRender_Environment.h"
 #include "SoundRender_Scene.h"
 
 struct OggVorbis_File;
-
+class CSoundRender_Target;
+class Source;
 class Task;
 
 class CSoundRender_Emitter final : public CSound_emitter
@@ -38,8 +39,7 @@ public:
     ref_sound owner_data;
 
     [[nodiscard]]
-    CSoundRender_Source* source() const { return (CSoundRender_Source*)owner_data->handle; }
-
+    Source* source() const;
     [[nodiscard]]
     u32 get_bytes_total() const;
     [[nodiscard]]

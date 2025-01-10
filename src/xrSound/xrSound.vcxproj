@@ -32,7 +32,6 @@
   <ItemGroup>
     <ClInclude Include="OpenALDeviceList.h" />
     <ClInclude Include="Sound.h" />
-    <ClInclude Include="SoundRender.h" />
     <ClInclude Include="SoundRender_Core.h" />
     <ClInclude Include="SoundRender_CoreA.h" />
     <ClInclude Include="SoundRender_Effects.h" />
@@ -54,13 +53,8 @@
     <ClCompile Include="Sound.cpp" />
     <ClCompile Include="SoundRender_Core.cpp" />
     <ClCompile Include="SoundRender_CoreA.cpp" />
-    <ClCompile Include="SoundRender_Core_Processor.cpp" />
-    <ClCompile Include="SoundRender_Core_SourceManager.cpp" />
-    <ClCompile Include="SoundRender_Core_StartStop.cpp" />
     <ClCompile Include="SoundRender_EffectsA_EAX.cpp" />
     <ClCompile Include="SoundRender_Emitter.cpp" />
-    <ClCompile Include="SoundRender_Emitter_FSM.cpp" />
-    <ClCompile Include="SoundRender_Emitter_StartStop.cpp" />
     <ClCompile Include="SoundRender_Environment.cpp" />
     <ClCompile Include="SoundRender_Scene.cpp" />
     <ClCompile Include="SoundRender_Source.cpp" />

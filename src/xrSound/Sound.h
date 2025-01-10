@@ -5,7 +5,7 @@
 #include "xrCore/xr_resource.h"
 #include "xrCore/_vector3d.h"
 #include "xrCore/xr_token.h"
-#include "xrCommon/xr_vector.h" // DEFINE_VECTOR
+#include "xrCommon/xr_vector.h"
 
 #ifdef XRAY_STATIC_BUILD
 #   define XRSOUND_API
@@ -16,6 +16,13 @@
 #      define XRSOUND_API XR_IMPORT
 #   endif
 #endif
+
+constexpr u32 sdef_target_count_submit = 4; // amount of buffers should be submitted to API
+constexpr u32 sdef_target_count_prefill = 10; //
+constexpr u32 sdef_target_block = 100; // ms
+constexpr u32 sdef_env_version = 4; // current version of env-def
+constexpr u32 sdef_level_version = 1; // current version of level-def
+constexpr float s_f_def_event_pulse = 0.5f; // sec
 
 constexpr pcstr SNDENV_FILENAME = "sEnvironment.xr";
 #define OGG_COMMENT_VERSION 0x0003

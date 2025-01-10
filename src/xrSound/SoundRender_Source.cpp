@@ -1,11 +1,8 @@
 #include "stdafx.h"
-
-#include "SoundRender_Core.h"
 #include "SoundRender_Source.h"
+#include "SoundRender_Core.h"
 
 #include <vorbis/vorbisfile.h>
-
-CSoundRender_Source::~CSoundRender_Source() { unload(); }
 
 namespace
 {
@@ -40,66 +37,10 @@ bool ov_can_continue_read(long res)
     }
     return false;
 }
-}
 
-void CSoundRender_Source::decompress(void* dest, u32 byte_offset, u32 size, OggVorbis_File* ovf) const
-{
-    ZoneScoped;
-
-    // seek
-    const auto sample_offset = ogg_int64_t(byte_offset / m_data_info.blockAlign);
-    const u32 cur_pos = u32(ov_pcm_tell(ovf));
-    if (cur_pos != sample_offset)
-        ov_pcm_seek(ovf, sample_offset);
-
-    // decompress
-    if (m_data_info.format == SoundFormat::Float32)
-        i_decompress(ovf, static_cast<float*>(dest), size);
-    else
-        i_decompress(ovf, static_cast<char*>(dest), size);
-}
-
-void CSoundRender_Source::i_decompress(OggVorbis_File* ovf, char* _dest, u32 size) const
-{
-    long TotalRet = 0;
-
-    // Read loop
-    while (TotalRet < static_cast<long>(size))
-    {
-        const auto ret = ov_read(ovf, _dest + TotalRet, size - TotalRet, 0, 2, 1, nullptr);
-        if (ret <= 0 && !ov_can_continue_read(ret))
-            break;
-        TotalRet += ret;
-    }
-}
-
-void CSoundRender_Source::i_decompress(OggVorbis_File* ovf, float* _dest, u32 size) const
-{
-    s32 left = s32(size / m_data_info.blockAlign);
-    while (left)
-    {
-        float** pcm;
-        long samples = ov_read_float(ovf, &pcm, left, nullptr);
-
-        if (samples <= 0 && !ov_can_continue_read(samples))
-            break;
-
-        if (samples > left)
-            samples = left;
-
-        for (long j = 0; j < samples; j++)
-            for (long i = 0; i < m_data_info.channels; i++)
-                *_dest++ = pcm[i][j];
-
-        left -= samples;
-    }
-}
-
-constexpr ov_callbacks g_ov_callbacks =
-{
+constexpr ov_callbacks g_ov_callbacks = {
     // read
-    [](void* ptr, size_t size, size_t nmemb, void* datasource) -> size_t
-    {
+    [](void* ptr, size_t size, size_t nmemb, void* datasource) -> size_t {
         auto* file = static_cast<IReader*>(datasource);
         const size_t exist_block = _max(0ul, iFloor(file->elapsed() / (float)size));
         const size_t read_block = std::min(exist_block, nmemb);
@@ -107,11 +48,10 @@ constexpr ov_callbacks g_ov_callbacks =
         return read_block;
     },
     // seek
-    [](void* datasource, ogg_int64_t offset, int whence) -> int
-    {
-        //SEEK_SET 0 File beginning
-        //SEEK_CUR 1 Current file pointer position
-        //SEEK_END 2 End-of-file
+    [](void* datasource, ogg_int64_t offset, int whence) -> int {
+        // SEEK_SET 0 File beginning
+        // SEEK_CUR 1 Current file pointer position
+        // SEEK_END 2 End-of-file
         switch (whence)
         {
         case SEEK_SET: ((IReader*)datasource)->seek((int)offset); break;
@@ -121,21 +61,66 @@ constexpr ov_callbacks g_ov_callbacks =
         return 0;
     },
     // close
-    [](void* datasource) -> int
-    {
+    [](void* datasource) -> int {
         auto* file = static_cast<IReader*>(datasource);
         FS.r_close(file);
         return 0;
     },
     // tell
-    [](void* datasource) -> long
-    {
+    [](void* datasource) -> long {
         const auto file = static_cast<IReader*>(datasource);
         return static_cast<long>(file->tell());
     },
 };
+}
 
-OggVorbis_File* CSoundRender_Source::open() const
+namespace xrSound
+{
+Source::~Source() { unload(); }
+
+bool Source::load(pcstr name)
+{
+    string_path fn, N;
+    xr_strcpy(N, name);
+#ifdef XR_PLATFORM_WINDOWS
+    xr_strlwr(N);
+#endif
+
+    if (strext(N))
+        *strext(N) = 0;
+
+    fname = N;
+
+    strconcat(fn, N, ".ogg");
+    if (!FS.exist("$level$", fn))
+        FS.update_path(fn, "$game_sounds$", fn);
+
+#ifndef MASTER_GOLD
+    if (!FS.exist(fn))
+    {
+        Msg("~ %s: Can't find sound '%s'", __FUNCTION__, name);
+#ifdef _EDITOR
+        FS.update_path(fn, "$game_sounds$", "$no_sound.ogg");
+#endif
+    }
+#endif
+
+    if (FS.exist(fn))
+    {
+        if (load_wave(fn))
+            return true;
+    }
+
+    return false;
+}
+
+void Source::unload()
+{
+    m_time_total = 0.0f;
+    m_bytes_total = 0;
+}
+
+OggVorbis_File* Source::open() const
 {
     const auto file = FS.r_open(pname.c_str());
     R_ASSERT3(file && file->length(), "Can't open wave file:", pname.c_str());
@@ -146,13 +131,30 @@ OggVorbis_File* CSoundRender_Source::open() const
     return ovf;
 }
 
-void CSoundRender_Source::close(OggVorbis_File*& ovf) const
+void Source::close(OggVorbis_File* ovf) const
 {
     ov_clear(ovf);
     xr_delete(ovf);
 }
 
-bool CSoundRender_Source::LoadWave(pcstr pName)
+void Source::decompress(void* dest, u32 byte_offset, u32 size, OggVorbis_File* ovf) const
+{
+    ZoneScoped;
+
+    // seek
+    const auto sample_offset = ogg_int64_t(byte_offset / m_data_info.block_align);
+    const u32 cur_pos = u32(ov_pcm_tell(ovf));
+    if (cur_pos != sample_offset)
+        ov_pcm_seek(ovf, sample_offset);
+
+    // decompress
+    if (m_data_info.format == SoundFormat::Float32)
+        decompress(ovf, static_cast<float*>(dest), size);
+    else
+        decompress(ovf, static_cast<char*>(dest), size);
+}
+
+bool Source::load_wave(pcstr pName)
 {
     ZoneScoped;
 
@@ -177,58 +179,58 @@ bool CSoundRender_Source::LoadWave(pcstr pName)
 
     m_data_info = {};
 
-    m_data_info.samplesPerSec = ovi->rate;
+    m_data_info.samples_per_sec = ovi->rate;
     m_data_info.channels = u16(ovi->channels);
 
-    if (SoundRender->supports_float_pcm)
+    if (SoundRenderCore->supports_float_pcm)
     {
         m_data_info.format = SoundFormat::Float32;
-        m_data_info.bitsPerSample = 32;
+        m_data_info.bits_per_sample = 32;
     }
     else
     {
         m_data_info.format = SoundFormat::PCM;
-        m_data_info.bitsPerSample = 16;
+        m_data_info.bits_per_sample = 16;
     }
 
-    m_data_info.blockAlign = m_data_info.bitsPerSample / 8 * m_data_info.channels;
-    m_data_info.avgBytesPerSec = m_data_info.samplesPerSec * m_data_info.blockAlign;
-    m_data_info.bytesPerBuffer = sdef_target_block * m_data_info.avgBytesPerSec / 1000;
+    m_data_info.block_align = m_data_info.bits_per_sample / 8 * m_data_info.channels;
+    m_data_info.avg_bytes_per_sec = m_data_info.samples_per_sec * m_data_info.block_align;
+    m_data_info.bytes_per_buffer = sdef_target_block * m_data_info.avg_bytes_per_sec / 1000;
 
     const s64 pcm_total = ov_pcm_total(&ovf, -1);
-    dwBytesTotal = u32(pcm_total * m_data_info.blockAlign);
-    fTimeTotal = dwBytesTotal / float(m_data_info.avgBytesPerSec);
+    m_bytes_total = u32(pcm_total * m_data_info.block_align);
+    m_time_total = m_bytes_total / float(m_data_info.avg_bytes_per_sec);
 
     m_info = {};
 
     const vorbis_comment* ovm = ov_comment(&ovf, -1);
     if (ovm->comments)
     {
-        IReader F(ovm->user_comments[0], ovm->comment_lengths[0]);
-        const u32 vers = F.r_u32();
+        IReader reader(ovm->user_comments[0], ovm->comment_lengths[0]);
+        const u32 vers = reader.r_u32();
         if (vers == 0x0001)
         {
-            m_info.minDist = F.r_float();
-            m_info.maxDist = F.r_float();
-            m_info.baseVolume = 1.f;
-            m_info.gameType = F.r_u32();
-            m_info.maxAIDist = m_info.maxDist;
+            m_info.min_dist = reader.r_float();
+            m_info.max_dist = reader.r_float();
+            m_info.base_volume = 1.f;
+            m_info.game_type = reader.r_u32();
+            m_info.max_ai_dist = m_info.max_dist;
         }
         else if (vers == 0x0002)
         {
-            m_info.minDist = F.r_float();
-            m_info.maxDist = F.r_float();
-            m_info.baseVolume = F.r_float();
-            m_info.gameType = F.r_u32();
-            m_info.maxAIDist = m_info.maxDist;
+            m_info.min_dist = reader.r_float();
+            m_info.max_dist = reader.r_float();
+            m_info.base_volume = reader.r_float();
+            m_info.game_type = reader.r_u32();
+            m_info.max_ai_dist = m_info.max_dist;
         }
         else if (vers == OGG_COMMENT_VERSION)
         {
-            m_info.minDist = F.r_float();
-            m_info.maxDist = F.r_float();
-            m_info.baseVolume = F.r_float();
-            m_info.gameType = F.r_u32();
-            m_info.maxAIDist = F.r_float();
+            m_info.min_dist = reader.r_float();
+            m_info.max_dist = reader.r_float();
+            m_info.base_volume = reader.r_float();
+            m_info.game_type = reader.r_u32();
+            m_info.max_ai_dist = reader.r_float();
         }
         else
         {
@@ -244,7 +246,7 @@ bool CSoundRender_Source::LoadWave(pcstr pName)
 #endif
     }
 
-    R_ASSERT3_CURE(m_info.maxAIDist >= 0.1f && m_info.maxDist >= 0.1f, "Invalid max distance.", pName,
+    R_ASSERT3_CURE(m_info.max_ai_dist >= 0.1f && m_info.max_dist >= 0.1f, "Invalid max distance.", pName,
     {
         ov_clear(&ovf);
         return false;
@@ -254,44 +256,39 @@ bool CSoundRender_Source::LoadWave(pcstr pName)
     return true;
 }
 
-bool CSoundRender_Source::load(pcstr name)
+void Source::decompress(OggVorbis_File* ovf, char* _dest, u32 size) const
 {
-    string_path fn, N;
-    xr_strcpy(N, name);
-#ifdef XR_PLATFORM_WINDOWS
-    xr_strlwr(N);
-#endif
+    long total_ret = 0;
 
-    if (strext(N))
-        *strext(N) = 0;
-
-    fname = N;
-
-    strconcat(fn, N, ".ogg");
-    if (!FS.exist("$level$", fn))
-        FS.update_path(fn, "$game_sounds$", fn);
-
-#ifndef MASTER_GOLD
-    if (!FS.exist(fn))
+    // Read loop
+    while (total_ret < static_cast<long>(size))
     {
-        Msg("~ %s: Can't find sound '%s'", __FUNCTION__, name);
-#   ifdef _EDITOR
-        FS.update_path(fn, "$game_sounds$", "$no_sound.ogg");
-#   endif
+        const auto ret = ov_read(ovf, _dest + total_ret, size - total_ret, 0, 2, 1, nullptr);
+        if (ret <= 0 && !ov_can_continue_read(ret))
+            break;
+        total_ret += ret;
     }
-#endif
-
-    if (FS.exist(fn))
-    {
-        if (LoadWave(fn))
-            return true;
-    }
-
-    return false;
 }
 
-void CSoundRender_Source::unload()
+void Source::decompress(OggVorbis_File* ovf, float* _dest, u32 size) const
 {
-    fTimeTotal = 0.0f;
-    dwBytesTotal = 0;
+    s32 left = s32(size / m_data_info.block_align);
+    while (left)
+    {
+        float** pcm;
+        long samples = ov_read_float(ovf, &pcm, left, nullptr);
+
+        if (samples <= 0 && !ov_can_continue_read(samples))
+            break;
+
+        if (samples > left)
+            samples = left;
+
+        for (long j = 0; j < samples; j++)
+            for (long i = 0; i < m_data_info.channels; i++)
+                *_dest++ = pcm[i][j];
+
+        left -= samples;
+    }
+}
 }

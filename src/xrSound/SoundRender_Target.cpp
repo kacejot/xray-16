@@ -44,5 +44,5 @@ void CSoundRender_Target::fill_parameters()
 {
     VERIFY(m_pEmitter);
     //if (pEmitter->b2D)
-    //    pEmitter->set_position(SoundRender->listener_position());
+    //    pEmitter->set_position(SoundRenderCore->listener_position());
 }
