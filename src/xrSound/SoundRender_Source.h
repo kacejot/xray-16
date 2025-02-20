@@ -29,26 +29,28 @@ struct SoundSourceInfo
     u32   gameType  {};
 };
 
-class XRSOUND_API CSoundRender_Source final : public CSound_source
+class OggVorbisFileGuard
 {
-    shared_str pname;
-    shared_str fname;
+public:
+    OggVorbisFileGuard() = default;
+    ~OggVorbisFileGuard();
+    OggVorbisFileGuard(const OggVorbisFileGuard&) = delete;
+    OggVorbisFileGuard& operator=(const OggVorbisFileGuard&) = delete;
 
-    float fTimeTotal{};
-    u32 dwBytesTotal{};
-
-    SoundDataInfo m_data_info{};
-    SoundSourceInfo m_info{};
+    OggVorbis_File* create();
+    OggVorbis_File* get() const;
+    bool has_value() const;
+    void clear();
 
 private:
-    void i_decompress(OggVorbis_File* ovf, char* dest, u32 size) const;
-    void i_decompress(OggVorbis_File* ovf, float* dest, u32 size) const;
+    OggVorbis_File* m_ovf = nullptr;
+};
 
-    bool LoadWave(pcstr name);
-
+class XRSOUND_API CSoundRender_Source final : public CSound_source
+{
 public:
-    CSoundRender_Source() noexcept = default;
-    ~CSoundRender_Source() override;
+    CSoundRender_Source(pcstr name) noexcept;
+    ~CSoundRender_Source() override = default;
 
     CSoundRender_Source(const CSoundRender_Source&) = delete;
     CSoundRender_Source(CSoundRender_Source&&) noexcept = default;
@@ -56,22 +58,32 @@ public:
     CSoundRender_Source& operator=(const CSoundRender_Source&) = delete;
     CSoundRender_Source& operator=(CSoundRender_Source&&) noexcept = default;
 
-    bool load(pcstr name);
-    void unload();
-
-    OggVorbis_File* open() const;
-    void close(OggVorbis_File*& ovf) const;
-
+    const OggVorbisFileGuard& ovf() const;
     void decompress(void* dest, u32 byte_offset, u32 size, OggVorbis_File* ovf) const;
 
     [[nodiscard]] const auto& data_info() const { return m_data_info; }
     [[nodiscard]] const auto&      info() const { return m_info; }
 
-    [[nodiscard]] pcstr file_name() const override { return fname.c_str(); }
+    [[nodiscard]] pcstr file_name() const override { return m_filename.c_str(); }
 
-    [[nodiscard]] float length_sec() const override { return fTimeTotal; }
-    [[nodiscard]] u32 bytes_total() const override { return dwBytesTotal; }
+    [[nodiscard]] float length_sec() const override { return m_time_total; }
+    [[nodiscard]] u32 bytes_total() const override { return m_bytes_total; }
 
     [[nodiscard]] u16 channels_num() const override { return data_info().channels; }
     [[nodiscard]] u32 game_type() const override { return info().gameType; }
+
+private:
+    void i_decompress(OggVorbis_File* ovf, char* dest, u32 size) const;
+    void i_decompress(OggVorbis_File* ovf, float* dest, u32 size) const;
+    void load_wave(pcstr name);
+
+private:
+    SoundDataInfo m_data_info{};
+    SoundSourceInfo m_info{};
+
+    OggVorbisFileGuard m_ovf;
+    shared_str m_filename;
+
+    u32 m_bytes_total{};
+    float m_time_total{};
 };

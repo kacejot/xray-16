@@ -56,11 +56,8 @@ public:
     u32 m_stream_cursor{};
     u32 m_cur_handle_cursor{};
     CSound_params p_source;
-    CSoundRender_Environment e_current;
-    CSoundRender_Environment e_target;
 
     int iPaused{};
-    bool bMoved;
     bool b2D{};
     bool bStopping{};
     bool bRewind{};
@@ -79,7 +76,7 @@ public:
     void move_cursor(int offset);
 
 private:
-    OggVorbis_File* ovf{};
+    OggVorbis_File* m_ovf{};
 
     xr_vector<u8> temp_buf[sdef_target_count_prefill];
     std::atomic<Task*> prefill_task{};
@@ -132,7 +129,6 @@ public:
     void update(float time, float dt);
     void render();
     bool update_culling(float dt);
-    void update_environment(float dt);
     void rewind();
     void stop(bool isDeffered) override;
     void pause(bool bVal, int id);

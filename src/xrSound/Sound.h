@@ -232,8 +232,6 @@ public:
     virtual void DumpStatistics(class IGameFont& font, class IPerformanceAlert* alert) = 0;
 
     virtual const Fvector& listener_position() = 0;
-
-    virtual void refresh_sources() = 0;
 };
 
 class XRSOUND_API CSoundManager
@@ -287,7 +285,7 @@ public:
     u32 dwBytesTotal{};
     float fTimeTotal{};
 
-    CSound(CSound_source* src) : handle(src) { VERIFY(src); }
+    explicit CSound(CSound_source* src) : handle(src) { VERIFY(src); }
     ~CSound() override { GEnv.Sound->destroy(*this); }
 };
 

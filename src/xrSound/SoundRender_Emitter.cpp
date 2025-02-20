@@ -16,8 +16,6 @@ void CSoundRender_Emitter::set_position(const Fvector& pos)
         p_source.position = pos;
     else
         p_source.position.set(0, 0, 0);
-
-    bMoved = true;
 }
 
 void CSoundRender_Emitter::set_frequency(float scale)
@@ -42,7 +40,6 @@ CSoundRender_Emitter::CSoundRender_Emitter(CSoundRender_Scene* s)
       occluder_volume(1.f),
       fade_volume(1.f),
       m_current_state(stStopped),
-      bMoved(true),
       marker(0xabababab) {}
 
 CSoundRender_Emitter::~CSoundRender_Emitter()
@@ -145,7 +142,7 @@ void CSoundRender_Emitter::move_cursor(int offset)
 
 void CSoundRender_Emitter::fill_data(void* dest, u32 offset, u32 size) const
 {
-    source()->decompress(dest, offset, size, ovf);
+    source()->decompress(dest, offset, size, m_ovf);
 }
 
 void CSoundRender_Emitter::fill_block(void* ptr, u32 size)

@@ -71,7 +71,7 @@ protected:
     xr_vector<CSoundRender_Scene*> m_scenes;
 
     Lock s_sources_lock;
-    xr_unordered_map<xr_string, CSoundRender_Source*> s_sources;
+    xr_unordered_map<xr_string, xr_unique_ptr<CSoundRender_Source>> s_sources;
 
     u32 s_emitters_u; // emitter update marker
     xr_vector<CSoundRender_Target*> s_targets;
@@ -114,8 +114,6 @@ public:
     const auto& listener_params() const { return Listener; }
     const Fvector& listener_position() override { return Listener.position; }
     virtual void update_listener(const Fvector& P, const Fvector& D, const Fvector& N, const Fvector& R, float dt);
-
-    void refresh_sources() override;
 
 public:
     CSoundRender_Source* i_create_source(pcstr name);

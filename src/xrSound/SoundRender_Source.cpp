@@ -5,8 +5,6 @@
 
 #include <vorbis/vorbisfile.h>
 
-CSoundRender_Source::~CSoundRender_Source() { unload(); }
-
 namespace
 {
 bool ov_can_continue_read(long res)
@@ -40,6 +38,40 @@ bool ov_can_continue_read(long res)
     }
     return false;
 }
+}
+
+CSoundRender_Source::CSoundRender_Source(pcstr filename) noexcept
+    : m_filename(filename)
+{
+    string_path fn, N;
+    xr_strcpy(N, filename);
+#ifdef XR_PLATFORM_WINDOWS
+    xr_strlwr(N);
+#endif
+
+    if (strext(N))
+        *strext(N) = 0;
+
+    m_filename = N;
+
+    strconcat(fn, N, ".ogg");
+    if (!FS.exist("$level$", fn))
+        FS.update_path(fn, "$game_sounds$", fn);
+
+#ifndef MASTER_GOLD
+    if (!FS.exist(fn))
+    {
+        Msg("~ %s: Can't find sound '%s'", __FUNCTION__, name);
+#ifdef _EDITOR
+        FS.update_path(fn, "$game_sounds$", "$no_sound.ogg");
+#endif
+    }
+#endif
+
+    if (FS.exist(fn))
+    {
+        load_wave(fn);
+    }
 }
 
 void CSoundRender_Source::decompress(void* dest, u32 byte_offset, u32 size, OggVorbis_File* ovf) const
@@ -135,45 +167,32 @@ constexpr ov_callbacks g_ov_callbacks =
     },
 };
 
-OggVorbis_File* CSoundRender_Source::open() const
+const OggVorbisFileGuard& CSoundRender_Source::ovf() const 
 {
-    const auto file = FS.r_open(pname.c_str());
-    R_ASSERT3(file && file->length(), "Can't open wave file:", pname.c_str());
-
-    const auto ovf = xr_new<OggVorbis_File>();
-    ov_open_callbacks(file, ovf, nullptr, 0, g_ov_callbacks);
-
-    return ovf;
+    return m_ovf;
 }
 
-void CSoundRender_Source::close(OggVorbis_File*& ovf) const
-{
-    ov_clear(ovf);
-    xr_delete(ovf);
-}
-
-bool CSoundRender_Source::LoadWave(pcstr pName)
+void CSoundRender_Source::load_wave(pcstr pName)
 {
     ZoneScoped;
 
-    pname = pName;
+    // parse WAV data without loading it into memory
+    const auto file = FS.r_open(pName);
+    R_ASSERT3(file && file->length(), "Can't open wave file:", pName);
 
-    // Load file into memory and parse WAV-format
-    OggVorbis_File ovf;
-    {
-        IReader* wave = FS.r_open(pname.c_str());
-        R_ASSERT3(wave && wave->length(), "Can't open wave file:", pname.c_str());
-        ov_open_callbacks(wave, &ovf, nullptr, 0, g_ov_callbacks);
-    }
 
-    const vorbis_info* ovi = ov_info(&ovf, -1);
+    const auto ovf = m_ovf.create();
+    ov_open_callbacks(file, ovf, nullptr, 0, g_ov_callbacks);
 
+    const vorbis_info* ovi = ov_info(ovf, -1);
     // verify
-    R_ASSERT3_CURE(ovi, "Invalid source info:", pName,
+     R_ASSERT3_CURE(ovi, "Invalid source info:", pName, 
     {
-        ov_clear(&ovf);
-        return false;
+        m_ovf.clear();
+        return;
+                
     });
+
 
     m_data_info = {};
 
@@ -195,13 +214,13 @@ bool CSoundRender_Source::LoadWave(pcstr pName)
     m_data_info.avgBytesPerSec = m_data_info.samplesPerSec * m_data_info.blockAlign;
     m_data_info.bytesPerBuffer = sdef_target_block * m_data_info.avgBytesPerSec / 1000;
 
-    const s64 pcm_total = ov_pcm_total(&ovf, -1);
-    dwBytesTotal = u32(pcm_total * m_data_info.blockAlign);
-    fTimeTotal = dwBytesTotal / float(m_data_info.avgBytesPerSec);
+    const s64 pcm_total = ov_pcm_total(ovf, -1);
+    m_bytes_total = u32(pcm_total * m_data_info.blockAlign);
+    m_time_total = m_bytes_total / float(m_data_info.avgBytesPerSec);
 
     m_info = {};
 
-    const vorbis_comment* ovm = ov_comment(&ovf, -1);
+    const vorbis_comment* ovm = ov_comment(ovf, -1);
     if (ovm->comments)
     {
         IReader F(ovm->user_comments[0], ovm->comment_lengths[0]);
@@ -246,52 +265,35 @@ bool CSoundRender_Source::LoadWave(pcstr pName)
 
     R_ASSERT3_CURE(m_info.maxAIDist >= 0.1f && m_info.maxDist >= 0.1f, "Invalid max distance.", pName,
     {
-        ov_clear(&ovf);
-        return false;
+        m_ovf.clear();
     });
-
-    ov_clear(&ovf);
-    return true;
 }
 
-bool CSoundRender_Source::load(pcstr name)
+OggVorbisFileGuard::~OggVorbisFileGuard()
 {
-    string_path fn, N;
-    xr_strcpy(N, name);
-#ifdef XR_PLATFORM_WINDOWS
-    xr_strlwr(N);
-#endif
-
-    if (strext(N))
-        *strext(N) = 0;
-
-    fname = N;
-
-    strconcat(fn, N, ".ogg");
-    if (!FS.exist("$level$", fn))
-        FS.update_path(fn, "$game_sounds$", fn);
-
-#ifndef MASTER_GOLD
-    if (!FS.exist(fn))
-    {
-        Msg("~ %s: Can't find sound '%s'", __FUNCTION__, name);
-#   ifdef _EDITOR
-        FS.update_path(fn, "$game_sounds$", "$no_sound.ogg");
-#   endif
-    }
-#endif
-
-    if (FS.exist(fn))
-    {
-        if (LoadWave(fn))
-            return true;
-    }
-
-    return false;
+    clear();
 }
 
-void CSoundRender_Source::unload()
+OggVorbis_File* OggVorbisFileGuard::create()
 {
-    fTimeTotal = 0.0f;
-    dwBytesTotal = 0;
+    m_ovf = xr_new<OggVorbis_File>();
+    return m_ovf;
 }
+
+OggVorbis_File* OggVorbisFileGuard::get() const
+{
+    return m_ovf;
+}
+
+bool OggVorbisFileGuard::has_value() const
+{
+    return m_ovf != nullptr;
+}
+
+void OggVorbisFileGuard::clear()
+{
+    ov_clear(m_ovf);
+    xr_delete(m_ovf);
+    m_ovf = nullptr;
+}
+

@@ -59,12 +59,6 @@ void CSoundRender_Core::_initialize()
 void CSoundRender_Core::_clear()
 {
     bReady = false;
-
-    // remove sources
-    for (auto& kv : s_sources)
-    {
-        xr_delete(kv.second);
-    }
     s_sources.clear();
 }
 
@@ -208,14 +202,3 @@ void CSoundRender_Core::update_listener(const Fvector& P, const Fvector& D, cons
     m_effects->commit();
 }
 
-void CSoundRender_Core::refresh_sources()
-{
-    stop_emitters();
-
-    for (const auto& kv : s_sources)
-    {
-        CSoundRender_Source* s = kv.second;
-        s->unload();
-        s->load(s->file_name());
-    }
-}

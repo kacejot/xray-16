@@ -17,18 +17,18 @@ CSoundRender_Source* CSoundRender_Core::i_create_source(pcstr name)
         const auto it = s_sources.find(id);
         if (it != s_sources.end())
         {
-            return it->second;
+            return it->second.get();
         }
     }
 
     // Load a _new one
-    CSoundRender_Source source;
-    if (source.load(id))
+    auto source = xr_make_unique<CSoundRender_Source>(id);
+    if (source->ovf().has_value())
     {
         ScopeLock scope(&s_sources_lock);
-        CSoundRender_Source* S = xr_new<CSoundRender_Source>(std::move(source));
-        s_sources.emplace(id, S);
-        return S;
+        auto source_ptr = source.get();
+        s_sources.emplace(id, std::move(source));
+        return source_ptr;
     }
 
     return nullptr;

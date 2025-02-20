@@ -4,6 +4,7 @@
 #include "SoundRender_CoreA.h"
 #include "SoundRender_TargetA.h"
 #include "OpenALDeviceList.h"
+#include "SoundRender_Source.h"
 #include "SoundRender_EffectsA_EAX.h"
 
 CSoundRender_CoreA::CSoundRender_CoreA(CSoundManager& p)

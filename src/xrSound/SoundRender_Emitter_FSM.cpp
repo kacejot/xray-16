@@ -69,7 +69,6 @@ void CSoundRender_Emitter::update(float fTime, float dt)
         smooth_volume = p_source.base_volume * p_source.volume *
             (owner_data->s_type == st_Effect ? psSoundVEffects * psSoundVFactor : psSoundVMusic) *
             (b2D ? 1.f : occluder_volume);
-        e_current = e_target = *(CSoundRender_Environment*)scene->get_environment(p_source.position);
         if (update_culling(dt))
         {
             m_current_state = stPlaying;
@@ -98,7 +97,6 @@ void CSoundRender_Emitter::update(float fTime, float dt)
         smooth_volume = p_source.base_volume * p_source.volume *
             (owner_data->s_type == st_Effect ? psSoundVEffects * psSoundVFactor : psSoundVMusic) *
             (b2D ? 1.f : occluder_volume);
-        e_current = e_target = *(CSoundRender_Environment*)scene->get_environment(p_source.position);
         if (update_culling(dt))
         {
             m_current_state = stPlayingLooped;
@@ -132,11 +130,6 @@ void CSoundRender_Emitter::update(float fTime, float dt)
                 // switch to: SIMULATE
                 stop_target();
                 m_current_state = stSimulating;
-            }
-            else
-            {
-                // We are still playing
-                update_environment(dt);
             }
         }
         break;
@@ -188,11 +181,6 @@ void CSoundRender_Emitter::update(float fTime, float dt)
             // switch to: SIMULATE
             stop_target();
             m_current_state = stSimulatingLooped; // switch state
-        }
-        else
-        {
-            // We are still playing
-            update_environment(dt);
         }
         break;
     case stSimulatingLooped:
@@ -273,7 +261,6 @@ void CSoundRender_Emitter::update(float fTime, float dt)
     VERIFY2(owner_data ? *(int*)(owner_data->feedback) : 1, "owner");
 
     // footer
-    bMoved = FALSE;
     if (m_current_state != stStopped)
     {
         if (fTime >= fTimeToPropagade)
@@ -361,13 +348,6 @@ float CSoundRender_Emitter::priority() const
     float att = p_source.min_distance / (psSoundRolloff * dist);
     clamp(att, 0.f, 1.f);
     return smooth_volume * att * priority_scale;
-}
-
-void CSoundRender_Emitter::update_environment(float dt)
-{
-    if (bMoved)
-        e_target = *(CSoundRender_Environment*)scene->get_environment(p_source.position);
-    e_current.lerp(e_current, e_target, dt);
 }
 
 void CSoundRender_Emitter::render()
