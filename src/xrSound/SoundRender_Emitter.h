@@ -76,8 +76,6 @@ public:
     void move_cursor(int offset);
 
 private:
-    OggVorbis_File* m_ovf{};
-
     xr_vector<u8> temp_buf[sdef_target_count_prefill];
     std::atomic<Task*> prefill_task{};
 

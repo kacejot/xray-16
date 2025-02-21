@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 #include "SoundRender_Core.h"
-#include "SoundRender_Source.h"
+#include "SourceStream.h"
 
 CSoundRender_Source* CSoundRender_Core::i_create_source(pcstr name)
 {
@@ -22,8 +22,8 @@ CSoundRender_Source* CSoundRender_Core::i_create_source(pcstr name)
     }
 
     // Load a _new one
-    auto source = xr_make_unique<CSoundRender_Source>(id);
-    if (source->ovf().has_value())
+    auto source = xr_make_unique<SourceStream>(id);
+    if (source->is_valid())
     {
         ScopeLock scope(&s_sources_lock);
         auto source_ptr = source.get();

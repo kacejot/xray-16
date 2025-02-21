@@ -18,12 +18,12 @@ void CSoundRender_Emitter::start(const ref_sound& _owner, u32 flags, float delay
     p_source.position.set(0, 0, 0);
 
     const auto info = source()->info();
-    p_source.min_distance = info.minDist;
-    p_source.max_distance = info.maxDist;
-    p_source.base_volume = info.baseVolume;
+    p_source.min_distance = info.min_dist;
+    p_source.max_distance = info.max_dist;
+    p_source.base_volume = info.base_volume;
     p_source.volume = 1.f;
     p_source.freq = 1.f;
-    p_source.max_ai_distance = info.maxAIDist;
+    p_source.max_ai_distance = info.max_ai_dist;
 
     if (fis_zero(delay, EPS_L))
     {
@@ -39,9 +39,7 @@ void CSoundRender_Emitter::start(const ref_sound& _owner, u32 flags, float delay
 
     // Calc storage
     for (auto& buf : temp_buf)
-        buf.resize(source()->data_info().bytesPerBuffer);
-
-    m_ovf = source()->ovf().get();
+        buf.resize(source()->info().bytes_per_buffer);
 }
 
 void CSoundRender_Emitter::i_stop()
@@ -56,6 +54,8 @@ void CSoundRender_Emitter::i_stop()
         Event_ReleaseOwner();
         VERIFY(this == owner_data->feedback);
         owner_data->feedback = NULL;
+
+        // TODO: check ref count in debug for owner data
         owner_data = NULL;
     }
     m_current_state = stStopped;

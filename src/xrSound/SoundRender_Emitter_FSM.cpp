@@ -8,7 +8,7 @@
 
 XRSOUND_API extern float psSoundCull;
 
-inline u32 calc_cursor(const float& fTimeStarted, float& fTime, const float& fTimeTotal, const float& fFreq, const SoundDataInfo& info) //--#SM+#--
+inline u32 calc_cursor(const float& fTimeStarted, float& fTime, const float& fTimeTotal, const float& fFreq, const WaveInfo& info) //--#SM+#--
 {
     if (fTime < fTimeStarted)
         fTime = fTimeStarted; // Андрюха посоветовал, ассерт что ниже вылетел из за паузы как то хитро
@@ -17,8 +17,8 @@ inline u32 calc_cursor(const float& fTimeStarted, float& fTime, const float& fTi
     {
         fTime -= fTimeTotal / fFreq;
     }
-    const u32 curr_sample_num = iFloor((fTime - fTimeStarted) * fFreq * info.samplesPerSec);
-    return curr_sample_num * (info.bitsPerSample / 8) * info.channels;
+    const u32 curr_sample_num = iFloor((fTime - fTimeStarted) * fFreq * info.samples_per_sec);
+    return curr_sample_num * (info.bits_per_sample / 8) * info.channels;
 }
 
 void CSoundRender_Emitter::update(float fTime, float dt)
@@ -148,7 +148,7 @@ void CSoundRender_Emitter::update(float fTime, float dt)
         }
         else
         {
-            const u32 ptr = calc_cursor(fTimeStarted, fTime, get_length_sec(), p_source.freq, source()->data_info()); //--#SM+#--
+            const u32 ptr = calc_cursor(fTimeStarted, fTime, get_length_sec(), p_source.freq, source()->info()); //--#SM+#--
             set_cursor(ptr);
 
             if (update_culling(dt))
@@ -194,7 +194,7 @@ void CSoundRender_Emitter::update(float fTime, float dt)
         {
             // switch to: PLAY
             m_current_state = stPlayingLooped; // switch state
-            const u32 ptr = calc_cursor(fTimeStarted, fTime, get_length_sec(), p_source.freq, source()->data_info()); //--#SM+#--
+            const u32 ptr = calc_cursor(fTimeStarted, fTime, get_length_sec(), p_source.freq, source()->info()); //--#SM+#--
             set_cursor(ptr);
 
             SoundRender->i_start(this);
@@ -244,7 +244,7 @@ void CSoundRender_Emitter::update(float fTime, float dt)
                 fTimeToStop = fTime + fRemainingTime;
             }
 
-            const u32 ptr = calc_cursor(fTimeStarted, fTime, fLength, p_source.freq, source()->data_info());
+            const u32 ptr = calc_cursor(fTimeStarted, fTime, fLength, p_source.freq, source()->info());
             set_cursor(ptr);
 
             fTimeToRewind = 0.0f;

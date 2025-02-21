@@ -7,6 +7,13 @@
 template <typename T>
 struct xr_custom_deleter
 {
+    constexpr xr_custom_deleter() noexcept = default;
+
+    template <class U, std::enable_if_t<std::is_convertible_v<U*, T*>, int> = 0>
+    _CONSTEXPR23 xr_custom_deleter(const xr_custom_deleter<U>&) noexcept
+    {
+    }
+
     void operator()(T* ptr) const noexcept
     {
         xr_delete(ptr);
