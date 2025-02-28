@@ -6,6 +6,7 @@
 #include "SoundRender_Environment.h"
 #include "SoundRender_Effects.h"
 #include "SoundRender_Scene.h"
+#include "SourceCache.h"
 
 class CSoundRender_Core : public ISoundManager
 {
@@ -71,7 +72,7 @@ protected:
     xr_vector<CSoundRender_Scene*> m_scenes;
 
     Lock s_sources_lock;
-    xr_unordered_map<xr_string, xr_unique_ptr<CSoundRender_Source>> s_sources;
+    SourceCache m_source_cache;
 
     u32 s_emitters_u; // emitter update marker
     xr_vector<CSoundRender_Target*> s_targets;

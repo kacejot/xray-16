@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 #include "SoundRender_Core.h"
-#include "SourceStream.h"
 
 CSoundRender_Source* CSoundRender_Core::i_create_source(pcstr name)
 {
@@ -14,21 +13,11 @@ CSoundRender_Source* CSoundRender_Core::i_create_source(pcstr name)
 
     {
         ScopeLock scope(&s_sources_lock);
-        const auto it = s_sources.find(id);
-        if (it != s_sources.end())
+        auto source = m_source_cache.get(id);
+        if (nullptr != source)
         {
-            return it->second.get();
+            return source;
         }
-    }
-
-    // Load a _new one
-    auto source = xr_make_unique<SourceStream>(id);
-    if (source->is_valid())
-    {
-        ScopeLock scope(&s_sources_lock);
-        auto source_ptr = source.get();
-        s_sources.emplace(id, std::move(source));
-        return source_ptr;
     }
 
     return nullptr;

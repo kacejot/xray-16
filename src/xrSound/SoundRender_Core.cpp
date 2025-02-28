@@ -59,7 +59,7 @@ void CSoundRender_Core::_initialize()
 void CSoundRender_Core::_clear()
 {
     bReady = false;
-    s_sources.clear();
+    m_source_cache.clear();
 }
 
 ISoundScene* CSoundRender_Core::create_scene()

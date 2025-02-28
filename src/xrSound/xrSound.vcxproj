@@ -30,7 +30,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="SourceBuffer.h" />
     <ClInclude Include="OggVorbisFile.h" />
     <ClInclude Include="OpenALDeviceList.h" />
     <ClInclude Include="Sound.h" />
@@ -45,11 +44,10 @@
     <ClInclude Include="SoundRender_Source.h" />
     <ClInclude Include="SoundRender_Target.h" />
     <ClInclude Include="SoundRender_TargetA.h" />
+    <ClInclude Include="SourceCache.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="SourceStream.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="SourceBuffer.cpp" />
     <ClCompile Include="guids.cpp">
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -71,7 +69,7 @@
     <ClCompile Include="SoundRender_Source.cpp" />
     <ClCompile Include="SoundRender_Target.cpp" />
     <ClCompile Include="SoundRender_TargetA.cpp" />
-    <ClCompile Include="SourceStream.cpp" />
+    <ClCompile Include="SourceCache.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

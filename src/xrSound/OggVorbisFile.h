@@ -30,15 +30,21 @@ struct WaveInfo
 class OggVorbisFile
 {
 public:
+    static std::pair<bool, OggVorbisFile> from_file(pcstr name);
+
     OggVorbisFile() noexcept = default;
     ~OggVorbisFile();
 
-    // forbid copy
-    // allow move
+    OggVorbisFile(const OggVorbisFile&) = delete;
+    OggVorbisFile& operator=(const OggVorbisFile&) = delete;
+
+    OggVorbisFile(OggVorbisFile&&) noexcept = default;
+    OggVorbisFile& operator=(OggVorbisFile&&) noexcept = default;
 
     bool load(pcstr name);
     void decompress(void* dest, u32 byte_offset, u32 size);
     [[nodiscard]] const auto& info() const { return m_info; }
+    [[nodiscard]] pcstr file_name() const { return m_filename.c_str(); }
 
 private:
     void clear();
@@ -47,6 +53,6 @@ private:
 
 private:
     WaveInfo m_info{};
+    OggVorbis_File m_ovf{};
     shared_str m_filename;
-    OggVorbis_File m_ovf;
 };

@@ -41,8 +41,6 @@ public:
     CSoundRender_Source* source() const { return (CSoundRender_Source*)owner_data->handle; }
 
     [[nodiscard]]
-    u32 get_bytes_total() const;
-    [[nodiscard]]
     float get_length_sec() const;
 
     float starting_delay{};

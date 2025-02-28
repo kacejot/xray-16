@@ -10,6 +10,8 @@ class CSoundRender_Target;
 class CSoundRender_Environment;
 class SoundEnvironment_LIB;
 
+const u32 sdef_max_cache_size = 32;
+const u32 sdef_max_cached_file_size = 2 * 1024 * 1024; // 2Mb
 const u32 sdef_target_count_submit = 4; // amount of buffers should be submitted to API
 const u32 sdef_target_count_prefill = 10; //
 const u32 sdef_target_block = 100; // ms

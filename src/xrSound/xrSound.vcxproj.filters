@@ -78,13 +78,10 @@
     <ClInclude Include="SoundRender_Scene.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="SourceStream.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="SourceBuffer.h">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="OggVorbisFile.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCache.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
@@ -143,13 +140,10 @@
     <ClCompile Include="SoundRender_Scene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="SourceBuffer.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="OggVorbisFile.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SourceStream.cpp">
+    <ClCompile Include="SourceCache.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

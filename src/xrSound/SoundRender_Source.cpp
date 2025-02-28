@@ -1,39 +1,28 @@
 #include "stdafx.h"
 #include "SoundRender_Source.h"
 
-CSoundRender_Source::CSoundRender_Source(pcstr filename) noexcept
+CSoundRender_Source::CSoundRender_Source(OggVorbisFile&& ovf) noexcept : m_ovf(std::move(ovf))
 {
-    string_path fn, N;
-    xr_strcpy(N, filename);
-#ifdef XR_PLATFORM_WINDOWS
-    xr_strlwr(N);
-#endif
-
-    if (strext(N))
-        *strext(N) = 0;
-
-    m_filename = N;
-
-    strconcat(fn, N, ".ogg");
-    if (!FS.exist("$level$", fn))
-        FS.update_path(fn, "$game_sounds$", fn);
-
-#ifndef MASTER_GOLD
-    if (!FS.exist(fn))
-    {
-        Msg("~ %s: Can't find sound '%s'", __FUNCTION__, filename);
-#ifdef _EDITOR
-        FS.update_path(fn, "$game_sounds$", "$no_sound.ogg");
-#endif
-    }
-#endif
-
-    if (FS.exist(fn))
-    {
-        m_is_valid = m_ovf.load(fn);
-    }
 }
 
+BufferSource::BufferSource(OggVorbisFile&& ovf) : CSoundRender_Source(std::move(ovf))
+{
+    m_ovf.decompress(m_buffer.data(), 0, m_ovf.info().bytes_total);
+}
+
+void BufferSource::decompress(void* dest, u32 byte_offset, u32 size)
+{
+    memcpy(dest, m_buffer.data() + byte_offset, size);
+}
+
+SourceStream::SourceStream(OggVorbisFile&& ovf) noexcept : CSoundRender_Source(std::move(ovf))
+{
+}
+
+void SourceStream::decompress(void* dest, u32 byte_offset, u32 size)
+{
+    m_ovf.decompress(dest, byte_offset, size);
+}
 
 
 

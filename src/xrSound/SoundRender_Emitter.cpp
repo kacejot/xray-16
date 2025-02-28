@@ -151,7 +151,7 @@ void CSoundRender_Emitter::fill_block(void* ptr, u32 size)
 
     // Msg			("stream: %10s - [%X]:%d, p=%d, t=%d",*source->fname,ptr,size,position,source->dwBytesTotal);
     u8* dest = (u8*)(ptr);
-    const u32 dwBytesTotal = get_bytes_total();
+    const u32 dwBytesTotal = owner_data->dwBytesTotal;
 
     if ((get_cursor(true) + size) > dwBytesTotal)
     {
@@ -275,11 +275,6 @@ void CSoundRender_Emitter::wait_prefill() const
 {
     if (const auto task = prefill_task.load(std::memory_order_acquire))
         TaskScheduler->Wait(*task);
-}
-
-u32 CSoundRender_Emitter::get_bytes_total() const
-{
-    return owner_data->dwBytesTotal;
 }
 
 float CSoundRender_Emitter::get_length_sec() const

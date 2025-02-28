@@ -77,6 +77,41 @@ OggVorbisFile::~OggVorbisFile()
     clear();
 }
 
+std::pair<bool, OggVorbisFile> OggVorbisFile::from_file(pcstr name)
+{
+    string_path name_ogg_ext;
+    string_path name_no_ext;
+
+    xr_strcpy(name_no_ext, name);
+#ifdef XR_PLATFORM_WINDOWS
+    xr_strlwr(name_no_ext);
+#endif
+
+    if (strext(name_no_ext))
+        *strext(name_no_ext) = 0;
+
+    strconcat(name_ogg_ext, name_no_ext, ".ogg");
+    if (!FS.exist("$level$", name_ogg_ext))
+        FS.update_path(name_ogg_ext, "$game_sounds$", name_ogg_ext);
+
+#ifndef MASTER_GOLD
+    if (!FS.exist(fn))
+    {
+        Msg("~ %s: Can't find sound '%s'", __FUNCTION__, name);
+#ifdef _EDITOR
+        FS.update_path(fn, "$game_sounds$", "$no_sound.ogg");
+#endif
+    }
+#endif
+
+    std::pair<bool, OggVorbisFile> result{false, OggVorbisFile{}};
+
+    if (FS.exist(name_ogg_ext) && result.second.load(name_ogg_ext))
+        result.first = true;
+
+    return result;
+}
+
 bool OggVorbisFile::load(pcstr name)
 {
     ZoneScoped;
@@ -164,6 +199,7 @@ bool OggVorbisFile::load(pcstr name)
         return false;
     });
 
+    m_filename = name;
     return true;
 }
 
